@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camel="http://camel.apache.org/schema/spring"
+	xmlns:amq="http://activemq.apache.org/schema/core"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                            http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
+                            http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+
+	<import resource="camel-beans.xml" />
+
+	<camelContext xmlns="http://camel.apache.org/schema/spring">
+
+		<!-- -->
+		<route id="processIncomingFilesRoute" trace="true" xmlns="http://camel.apache.org/schema/spring">
+
+			<!-- listen for a new file arriving -->
+			<from uri="file://c:/data/in/" />
+
+			<doTry>
+
+				<log
+					message="*** New file detected at ${headers.CamelFilePath}"
+					loggingLevel="INFO" />
+
+				<!-- move it to a separate directory -->
+				<to uri="file://c:/data/tmp/" />
+
+				<log
+					message="*** File moved to ${headers.CamelFileNameProduced}"
+					loggingLevel="INFO" />
+
+				<!-- GET the free marker product template -->
+				<!-- 
+					Example of reading the Freemarker template in from a web service endpoint.
+					<to uri="freemarker:http://localhost:8080/web-test-exploded/FREEMARKER_TEMPLATE.xml" />
+				-->
+					
+				<to uri="file:FREEMARKER_TEMPLATE.xml" />
+
+				<!-- Create a JMS message -->
+				<setHeader headerName="CamelJmsMessageType">
+					<simple>Object</simple>
+				</setHeader>
+
+				<!-- Place a message on the output queue -->
+				<to uri="activemq:queue:OutputQueue" />
+
+				<log
+					message="*** New transformed file despatched to OutputQueue with reference to file at ${headers.CamelFileNameProduced}"
+					loggingLevel="INFO" />
+
+				<doCatch>
+					<exception>java.lang.Exception</exception>
+					<setHeader headerName="Exception">
+						<simple>${property.CamelExceptionCaught.message}</simple>
+					</setHeader>
+					<log
+						message="*** Failed to create message from file '${headers.CamelFilePath}' - ${property.CamelExceptionCaught.message} "
+						loggingLevel="INFO" />
+					<to id="toDLQ" uri="activemq:DLQ.EndQueue" />
+				</doCatch>
+			</doTry>
+
+		</route>
+
+
+	</camelContext>
+
+
+	<amq:broker id="broker" useJmx="true" persistent="false">
+		<amq:transportConnectors>
+			<amq:transportConnector uri="tcp://localhost:61616" />
+		</amq:transportConnectors>
+	</amq:broker>
+
+
+	<bean id="shutdown" class="org.apache.camel.impl.DefaultShutdownStrategy">
+		<property name="timeout" value="5" /> <!-- override the default shutdown time for testing -->
+	</bean>
+
+	<bean id="activemq" class="org.apache.camel.component.jms.JmsComponent">
+		<property name="connectionFactory">
+			<bean class="org.apache.activemq.ActiveMQConnectionFactory">
+				<property name="brokerURL" value="vm://localhost?async=false" />
+			</bean>
+		</property>
+	</bean>
+
+
+</beans>
