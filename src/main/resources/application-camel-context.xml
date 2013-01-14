@@ -37,7 +37,7 @@
 					<to uri="freemarker:http://localhost:8080/web-test-exploded/FREEMARKER_TEMPLATE.xml" />
 				-->
 					
-				<to uri="file:FREEMARKER_TEMPLATE.xml" />
+				<to uri="freemarker:FREEMARKER_TEMPLATE.xml" />
 
 				<!-- Create a JMS message -->
 				<setHeader headerName="CamelJmsMessageType">
