@@ -1,3 +1,4 @@
+<a href="https://travis-ci.org/corsoft/camel-demo-file-and-freemarker"><img src="https://travis-ci.org/corsoft/camel-demo-file-and-freemarker.svg"/></a>
 camel-demo-file-and-freemarker
 ==============================
 
